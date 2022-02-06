@@ -16,7 +16,13 @@ int homeoffset = -10000;
 
 int crashendpos1;
 int crashendpos2;
+int numbercrashes = 0;
 
+int PingPongState = 1;
+bool PingPongStarted;
+int pingpongpos;
+int relspduringPinPong = 44;
+int PingPongwait = 500000;
 
 const int maxspeedscaling = 20;
 
@@ -333,6 +339,7 @@ void loop() {
   switch (state) {
     case 1: // Boot
       state = 10;
+
       break;
 
     case 10: { // Init
@@ -428,13 +435,73 @@ void loop() {
           cancrash = 1;
           while ( !move( crashpos , crashpos , 500 )); // Make straight
           delay(200);
-          playrecoversound();
+
           //        Serial.println( stepper1.currentPosition() );
           //        Serial.println( stepper2.currentPosition() );
+          numbercrashes ++;
+          if (numbercrashes <= 2) {
+            playrecoversound();
+          }
+          else {
+            state = 50;
+            numbercrashes = 0;
+          }
         }
       }
       break;
 
+    case 50: //Ping Pong
+      {
+        if ( !PingPongStarted ) {
+          PingPongStarted = true;
+          pingpongpos = stepper1.currentPosition();
+          stepper1.setAcceleration(30000000);
+          stepper2.setAcceleration(30000000);
+        }
+
+        bool doDelay = false;
+        switch (PingPongState ) {
+          case 1:
+            if (move( pingpongpos , pingpongpos + relspduringPinPong , 459)) {
+              PingPongState = 2;
+              doDelay = true;
+            }
+            break;
+          case 2:
+            if (move( pingpongpos + relspduringPinPong * 2 , pingpongpos + relspduringPinPong , 2*459)) {
+              PingPongState = 3;
+              doDelay = true;
+            }
+            break;
+          case 3:
+            if (move( pingpongpos + relspduringPinPong * 2 , pingpongpos  , 459)) {
+              PingPongState = 4;
+              doDelay = true;
+            }
+            break;
+          case 4:
+            if (move( pingpongpos , pingpongpos  , 2*459)) {
+              PingPongState = 1;
+              doDelay = true;
+              PingPongwait *= 0.85;
+            }
+            break;
+        }
+
+        if (doDelay) {
+          delayMicroseconds( PingPongwait );
+          if (PingPongwait <= 500) {
+            delay(500);
+            PingPongwait = 500000;
+            PingPongStarted = false;
+            while ( !move( pingpongpos , pingpongpos , 500 )) {}; // Make straight
+            state = 30; //Only get out of Ping Pong when done
+          }
+        }
+
+      }
+
+      break;
     default: {
         state = 1;
       }
@@ -507,7 +574,7 @@ bool sing(int s) {
   return songdone;
 }
 
-void buzz( long frequency, long length) {
+void buzz( long frequency, long length ) {
   dir = !dir;
   digitalWrite(dirPin1, dir);
   digitalWrite(dirPin2, dir);
