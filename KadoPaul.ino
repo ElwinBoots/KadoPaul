@@ -3,10 +3,16 @@
 #define stepPin2 3
 #define dirPin1 2
 #define dirPin2 4
-#define analogPin A9
-#define homesens1 5
-#define homesens2 6
 
+#define stepPin3 5
+#define stepPin4 7
+#define dirPin3 6
+#define dirPin4 8
+
+#define analogPin A9
+#define homesens1 13
+#define homesens2 14
+//const int enablePin = 0;
 
 const int posmin = 0;
 const int posmax = 10 * 200 * 16;
@@ -320,17 +326,19 @@ int tempo_TakeonMe[] = {
 // AccelStepper::DRIVER means a stepper driver (with Step and Direction pins)
 AccelStepper stepper1(AccelStepper::DRIVER, stepPin1, dirPin1);
 AccelStepper stepper2(AccelStepper::DRIVER, stepPin2, dirPin2);
-
+AccelStepper stepper3(AccelStepper::DRIVER, stepPin3, dirPin3);
+AccelStepper stepper4(AccelStepper::DRIVER, stepPin4, dirPin4);
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  //  stepper1.setMaxSpeed(100000);
-  //  stepper1.setSpeed(10000);
-  //  stepper2.setMaxSpeed(100000);
-  //  stepper2.setSpeed(10000);
+  stepper1.setAcceleration(30000000);
+  stepper2.setAcceleration(30000000);
+  stepper3.setAcceleration(30000000);
+  stepper4.setAcceleration(30000000);
   pinMode( homesens1 , INPUT_PULLUP );
   pinMode( homesens2 , INPUT_PULLUP );
+//  pinMode( enablePin , OUTPUT );
 }
 
 void loop() {
@@ -343,6 +351,14 @@ void loop() {
       break;
 
     case 10: { // Init
+//        digitalWrite( enablePin , HIGH);
+        if ( !digitalRead( homesens1 ) || !digitalRead( homesens2 ) ) {
+          while ( !move( 10000 , 10000 , 5000 )) {}; // Move out of home sensors
+        }
+        state = 11;
+      }
+
+    case 11: { // Home
         // Home sequence
         // Set positions
 
@@ -387,6 +403,8 @@ void loop() {
             }
             stepper1.setAcceleration(300000);
             stepper2.setAcceleration(300000);
+            stepper3.setAcceleration(300000);
+            stepper4.setAcceleration(300000);         
           }
           else {
             itarget++;
@@ -395,7 +413,9 @@ void loop() {
             }
             targetpos = targetposlist[ itarget ];
             stepper1.setAcceleration(30000);
-            stepper2.setAcceleration(30000);
+            stepper2.setAcceleration(30000);            
+            stepper3.setAcceleration(30000);
+            stepper4.setAcceleration(30000);
             delay(500);
           }
         }
@@ -456,7 +476,9 @@ void loop() {
           PingPongStarted = true;
           pingpongpos = stepper1.currentPosition();
           stepper1.setAcceleration(30000000);
-          stepper2.setAcceleration(30000000);
+          stepper2.setAcceleration(30000000);          
+          stepper3.setAcceleration(30000000);
+          stepper4.setAcceleration(30000000);
         }
 
         bool doDelay = false;
@@ -468,7 +490,7 @@ void loop() {
             }
             break;
           case 2:
-            if (move( pingpongpos + relspduringPinPong * 2 , pingpongpos + relspduringPinPong , 2*459)) {
+            if (move( pingpongpos + relspduringPinPong * 2 , pingpongpos + relspduringPinPong , 2 * 459)) {
               PingPongState = 3;
               doDelay = true;
             }
@@ -480,7 +502,7 @@ void loop() {
             }
             break;
           case 4:
-            if (move( pingpongpos , pingpongpos  , 2*459)) {
+            if (move( pingpongpos , pingpongpos  , 2 * 459)) {
               PingPongState = 1;
               doDelay = true;
               PingPongwait *= 0.85;
@@ -524,11 +546,17 @@ bool move( int targetpos1 , int targetpos2 ,  int speed  ) {
 
   stepper1.moveTo( targetpos1 );
   stepper2.moveTo( targetpos2);
-
+  stepper3.moveTo( targetpos2 );
+  stepper4.moveTo( targetpos1);
+  
   stepper1.setMaxSpeed( speed );
   stepper2.setMaxSpeed( speed );
+  stepper3.setMaxSpeed( speed );
+  stepper4.setMaxSpeed( speed );
   stepper1.run();
-  stepper2.run();
+  stepper2.run();  
+  stepper3.run();
+  stepper4.run();
 
   bool movedone = 0;
   if ( stepper1.currentPosition() == targetpos1 && stepper2.currentPosition() == targetpos2 ) {
@@ -578,7 +606,8 @@ void buzz( long frequency, long length ) {
   dir = !dir;
   digitalWrite(dirPin1, dir);
   digitalWrite(dirPin2, dir);
-
+  digitalWrite(dirPin3, dir);
+  digitalWrite(dirPin4, dir);
   long delayValue = 1000000 / frequency / 2; // calculate the delay value between transitions
   //// 1 second's worth of microseconds, divided by the frequency, then split in half since
   //// there are two phases to each cycle
@@ -588,18 +617,27 @@ void buzz( long frequency, long length ) {
   for (long i = 0; i < numCycles; i++) { // for the calculated length of time...
     digitalWrite(stepPin1, HIGH); // write the buzzer pin high to push out the diaphram
     digitalWrite(stepPin2, HIGH); // write the buzzer pin high to push out the diaphram
+    digitalWrite(stepPin3, HIGH); // write the buzzer pin high to push out the diaphram
+    digitalWrite(stepPin4, HIGH); // write the buzzer pin high to push out the diaphram
     delayMicroseconds(delayValue / speedup); // wait for the calculated delay value
     digitalWrite(stepPin1, LOW); // write the buzzer pin low to pull back the diaphram
     digitalWrite(stepPin2, LOW); // write the buzzer pin low to pull back the diaphram
+    digitalWrite(stepPin3, LOW); // write the buzzer pin low to pull back the diaphram
+    digitalWrite(stepPin4, LOW); // write the buzzer pin low to pull back the diaphram
     delayMicroseconds(delayValue / speedup); // wait again or the calculated delay value
 
-    if (dir) {
+
+    if (dir) { //Not checked if these are the right directions! Maybe needs to swap?
       stepper1.setCurrentPosition(stepper1.currentPosition() + 1);
       stepper2.setCurrentPosition(stepper2.currentPosition() + 1);
+      stepper3.setCurrentPosition(stepper3.currentPosition() + 1);
+      stepper4.setCurrentPosition(stepper4.currentPosition() + 1);
     }
     else {
       stepper1.setCurrentPosition(stepper1.currentPosition() - 1);
       stepper2.setCurrentPosition(stepper2.currentPosition() - 1);
+      stepper3.setCurrentPosition(stepper3.currentPosition() - 1);
+      stepper4.setCurrentPosition(stepper4.currentPosition() - 1);
     }
   }
 }
@@ -611,27 +649,36 @@ bool home() {
 
   stepper1.setMaxSpeed(10000);
   stepper1.setAcceleration(30000);
-
   stepper2.setMaxSpeed(10000);
   stepper2.setAcceleration(30000);
+  stepper3.setMaxSpeed(10000);
+  stepper3.setAcceleration(30000);
+  stepper4.setMaxSpeed(10000);
+  stepper4.setAcceleration(30000);
 
   stepper1.moveTo( -1000000 );
-  stepper2.moveTo( -1000000 );
+  stepper2.moveTo( -1000000 );  
+  stepper3.moveTo( -1000000 );
+  stepper4.moveTo( -1000000 );
 
   if ( digitalRead( homesens1 ) && !homedone1 ) {
     stepper1.run();
+    stepper4.run();
   }
   else {
     homedone1 = true;
     stepper1.setCurrentPosition(homeoffset);
+    stepper4.setCurrentPosition(homeoffset);
   }
 
   if ( digitalRead( homesens2 ) && !homedone2 ) {
     stepper2.run();
+    stepper3.run();
   }
   else {
     homedone2 = true;
     stepper2.setCurrentPosition(homeoffset);
+    stepper3.setCurrentPosition(homeoffset);
   }
 
   if ( homedone1 && homedone2 ) {
