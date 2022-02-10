@@ -20,6 +20,10 @@ const int crashamount = 2000;
 int relspduringcrash = 20;
 int homeoffset = -10000;
 
+
+const int accel_high = 60000;
+const int accel_low = 30000;
+
 int crashendpos1;
 int crashendpos2;
 int numbercrashes = 0;
@@ -332,10 +336,10 @@ AccelStepper stepper4(AccelStepper::DRIVER, stepPin4, dirPin4);
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  stepper1.setAcceleration(30000000);
-  stepper2.setAcceleration(30000000);
-  stepper3.setAcceleration(30000000);
-  stepper4.setAcceleration(30000000);
+  stepper1.setAcceleration(accel_high);
+  stepper2.setAcceleration(accel_high);
+  stepper3.setAcceleration(accel_high);
+  stepper4.setAcceleration(accel_high);
   pinMode( homesens1 , INPUT_PULLUP );
   pinMode( homesens2 , INPUT_PULLUP );
 //  pinMode( enablePin , OUTPUT );
@@ -401,10 +405,10 @@ void loop() {
             else {
               targetpos = 0;
             }
-            stepper1.setAcceleration(300000);
-            stepper2.setAcceleration(300000);
-            stepper3.setAcceleration(300000);
-            stepper4.setAcceleration(300000);         
+            stepper1.setAcceleration(accel_high);
+            stepper2.setAcceleration(accel_high);
+            stepper3.setAcceleration(accel_high);
+            stepper4.setAcceleration(accel_high);         
           }
           else {
             itarget++;
@@ -412,10 +416,10 @@ void loop() {
               itarget = 0;
             }
             targetpos = targetposlist[ itarget ];
-            stepper1.setAcceleration(30000);
-            stepper2.setAcceleration(30000);            
-            stepper3.setAcceleration(30000);
-            stepper4.setAcceleration(30000);
+            stepper1.setAcceleration(accel_low);
+            stepper2.setAcceleration(accel_low);            
+            stepper3.setAcceleration(accel_low);
+            stepper4.setAcceleration(accel_low);
             delay(500);
           }
         }
@@ -475,10 +479,10 @@ void loop() {
         if ( !PingPongStarted ) {
           PingPongStarted = true;
           pingpongpos = stepper1.currentPosition();
-          stepper1.setAcceleration(30000000);
-          stepper2.setAcceleration(30000000);          
-          stepper3.setAcceleration(30000000);
-          stepper4.setAcceleration(30000000);
+          stepper1.setAcceleration(accel_high);
+          stepper2.setAcceleration(accel_high);          
+          stepper3.setAcceleration(accel_high);
+          stepper4.setAcceleration(accel_high);
         }
 
         bool doDelay = false;
@@ -648,13 +652,13 @@ bool home() {
   bool static homedone2 = false;
 
   stepper1.setMaxSpeed(10000);
-  stepper1.setAcceleration(30000);
+  stepper1.setAcceleration(accel_high);
   stepper2.setMaxSpeed(10000);
-  stepper2.setAcceleration(30000);
+  stepper2.setAcceleration(accel_high);
   stepper3.setMaxSpeed(10000);
-  stepper3.setAcceleration(30000);
+  stepper3.setAcceleration(accel_high);
   stepper4.setMaxSpeed(10000);
-  stepper4.setAcceleration(30000);
+  stepper4.setAcceleration(accel_high);
 
   stepper1.moveTo( -1000000 );
   stepper2.moveTo( -1000000 );  
